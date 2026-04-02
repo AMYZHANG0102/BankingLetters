@@ -1,0 +1,14 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    command: ["mongod", "--replSer", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+  
+  service1:
+    build: .
+    container_name: service1
+    depends_on:
+      - mongodb
+      

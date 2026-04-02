@@ -1,0 +1,29 @@
+Service 1 reacts when new data is added to the DB (watching).
+MongoDB has a built-in feature for watching: change streams (event-based trigger).
+Change streams only work when MongoDB is running on a replica set.
+
+1. Use docker to start MongoDB as a replica set:
+docker run -d --name mongodb \
+  -p 27017:27017 \
+  mongo:latest \
+  mongod --replSet rs0 --bind_ip_all
+This starts MongoDB in replica-set mode and allows connections from other containers.
+
+2. Initialize the replica set:
+docker exec -it mongodb mongosh
+rs.initiate() <-- inside mongosh
+
+3. insert_data.py script is used to create the database and collection.
+The script is also used to insert data into the collection.
+
+4. Service 1 connects to the database using a connection string:
+client = MongoClient("mongodb://mongodb:27017/?replicaSet=rs0")
+* mongodb:// * use MongoDB protocol
+* mongodb * host name of the container hosting the database
+* 27017 * default MongoDB port
+* ?replicaSet=rs0 * connect using replica set mode
+
+5. Service 1 watches the collection for insertions.
+Once an insertion occurs, service 1 is triggered to automatically validate
+the inserted document.
+If all the data is valid, it triggers service 2 or 3, depending on the letter type.
