@@ -1,0 +1,46 @@
+services:
+  welcome-service:
+    build: ./welcome_service
+    container_name: welcome-service
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+      LETTER_TYPE: welcome
+      SERVICE_NAME: welcome-service
+      TEMPLATE_FILE: /app/template.docx
+      OUTPUT_DIR: /app/shared/output/letters
+    volumes:
+      - ./shared:/app/shared
+
+  offer-service:
+    build: ./offer_service
+    container_name: offer-service
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: 5002
+      LETTER_TYPE: offer
+      SERVICE_NAME: offer-service
+      TEMPLATE_FILE: /app/template.docx
+      OUTPUT_DIR: /app/shared/output/letters
+    volumes:
+      - ./shared:/app/shared
+
+  validator-service:
+    build: ./validator_service
+    container_name: validator-service
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DATA_FILE: /app/shared/input/customers.json
+      VALIDATED_FILE: /app/shared/validated/validated_customers.json
+      INVALID_FILE: /app/shared/output/invalid_records.json
+      WELCOME_SERVICE_URL: http://welcome-service:5001/generate
+      OFFER_SERVICE_URL: http://offer-service:5002/generate
+    depends_on:
+      - welcome-service
+      - offer-service
+    volumes:
+      - ./shared:/app/shared

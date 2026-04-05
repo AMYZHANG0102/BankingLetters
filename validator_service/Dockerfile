@@ -1,10 +1,12 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY offer_service.py .
+COPY app.py .
 
-CMD ["python", "offer_service.py"]
+EXPOSE 5000
+
+CMD ["python", "app.py"]
