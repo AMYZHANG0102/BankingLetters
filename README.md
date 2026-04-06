@@ -2,66 +2,80 @@
 
 ## Project Overview
 
-This project is a small microservices-based banking letter generation system built with **Python**, **Flask**, **Docker**, and **Docker Compose**.
+This project is a small **microservices-based banking letter generation system** built with **Python**, **Flask**, **Docker**, and **Docker Compose**.
 
-The system reads customer data from a shared JSON file, validates the records, and generates personalized banking letters based on the customer's letter type.
+The system reads customer data from a shared **JSON** data source, validates each customer record, and generates personalized banking letters based on the requested letter type.
 
-The project supports two kinds of letters:
+The application supports two types of letters:
 
 1. **Welcome Letter**
    - Used for new customers
-   - Does not include credit-related information
+   - Does not include any credit-related information
 
 2. **Offer Letter**
    - Used for customers receiving a financial offer
    - Supports:
-     - **Credit Card** offer with a credit limit
-     - **Line of Credit** offer with a credit limit
+     - **Credit Card** offers with a credit limit
+     - **Line of Credit** offers with a credit limit
 
-This project is designed as **three separate microservices**, with each team member responsible for one service.
+This project is implemented as **three separate Dockerized microservices**, with each team member responsible for one service.
 
 ---
 
 ## Team Members and Responsibilities
 
 ### Amy — Service 1: Validator Service
-Amy implemented the validation service.
+Amy implemented the validation and routing service.
 
 Responsibilities:
-- Reads customer records from the JSON data source
-- Validates all required fields
-- Marks invalid records as `do_not_process: true`
-- Saves validation results to output files
-- Triggers the correct downstream service using HTTP
+- Read customer records from the JSON data source
+- Validate all required fields
+- Mark invalid records as `do_not_process: true`
+- Save validation results and invalid-record results
+- Trigger the correct downstream service using HTTP
 
 ### Nawaf — Service 2: Welcome Letter Service
-Nawaf implemented the welcome letter service.
+Nawaf implemented the welcome letter generation service.
 
 Responsibilities:
-- Receives validated welcome-letter records from the validator service
-- Opens the welcome letter template
-- Replaces placeholders with customer data
-- Generates personalized welcome letters in `.docx` format
+- Receive validated welcome-letter records from the validator service
+- Open the welcome letter template
+- Replace placeholders with customer data
+- Generate personalized welcome letters in `.docx` format
 
 ### Hira — Service 3: Offer Letter Service
-Hira implemented the offer letter service.
+Hira implemented the offer letter generation service.
 
 Responsibilities:
-- Receives validated offer-letter records from the validator service
-- Opens the offer letter template
-- Replaces placeholders with customer data
-- Generates personalized offer letters in `.docx` format
+- Receive validated offer-letter records from the validator service
+- Open the offer letter template
+- Replace placeholders with customer data
+- Generate personalized offer letters in `.docx` format
 
 ---
 
-## How the Application Works
+## Technologies Used
 
-### Step 1 — Validator Service
-The validator service is the entry point of the workflow.
+- Python
+- Flask
+- Docker
+- Docker Compose
+- Microsoft Word `.docx` templates
+- JSON data source
+- AWS Elastic Beanstalk (bonus cloud deployment)
+
+---
+
+## System Architecture
+
+The system is divided into three services:
+
+### 1. Validator Service
+This is the entry point of the workflow.
 
 It does the following:
 - Reads `shared/input/customers.json`
-- Checks whether each required field is present and valid
+- Validates all required fields
 - Marks invalid records with:
 
 ```json
@@ -74,14 +88,14 @@ It does the following:
 - Saves:
   - `shared/validated/validated_customers.json`
   - `shared/output/invalid_records.json`
-- Sends valid welcome records to the Welcome Letter Service
-- Sends valid offer records to the Offer Letter Service
+- Routes valid `welcome` records to the Welcome Letter Service
+- Routes valid `offer` records to the Offer Letter Service
 
-### Step 2 — Welcome Letter Service
-The welcome service receives valid `welcome` records from the validator service and generates personalized welcome letters from the provided Word template.
+### 2. Welcome Letter Service
+This service receives valid `welcome` records and generates personalized welcome letters using the provided welcome letter template.
 
-### Step 3 — Offer Letter Service
-The offer service receives valid `offer` records from the validator service and generates personalized offer letters from the provided Word template.
+### 3. Offer Letter Service
+This service receives valid `offer` records and generates personalized offer letters using the provided offer letter template.
 
 ---
 
@@ -96,12 +110,27 @@ Why this approach was chosen:
 - works well for a small student group project
 
 Workflow summary:
-1. Start all containers with Docker Compose
+1. Start all services with Docker Compose
 2. Trigger the validator service using `POST /process`
 3. Validator checks all customer records
-4. Validator marks invalid records so they are not processed
-5. Validator sends valid records to the correct generator service
-6. Generator services create the final letters
+4. Invalid records are marked as `do_not_process`
+5. Valid welcome records are sent to the Welcome Letter Service
+6. Valid offer records are sent to the Offer Letter Service
+7. Final letters are generated in `.docx` format
+
+---
+
+## Data Source
+
+This project uses a **JSON** file as the shared data source.
+
+Input file:
+
+```text
+shared/input/customers.json
+```
+
+The JSON file contains multiple customer records, including both valid and invalid examples for testing the validation logic.
 
 ---
 
@@ -126,6 +155,8 @@ For offer letters, the validator also checks:
   - `Line of Credit`
 - `CREDIT_LIMIT` must be numeric and greater than 0
 
+If any required field is missing or invalid, the record is marked as invalid and is not sent to the letter-generation services.
+
 ---
 
 ## Templates Used
@@ -135,7 +166,7 @@ The project uses two Word templates:
 - `welcome_service/template.docx`
 - `offer_service/template.docx`
 
-The templates use placeholders such as:
+Template placeholders include:
 
 - `{{CURRENT_DATE}}`
 - `{{FIRST_NAME}}`
@@ -148,7 +179,7 @@ The templates use placeholders such as:
 - `{{OFFER_TYPE}}`
 - `{{CREDIT_LIMIT}}`
 
-The welcome and offer services replace these placeholders with customer data when generating letters.
+The generator services replace these placeholders with customer data when producing the final personalized letters.
 
 ---
 
@@ -156,16 +187,15 @@ The welcome and offer services replace these placeholders with customer data whe
 
 ```text
 banking_letters_microservices/
-│
 ├── docker-compose.yml
 ├── README.md
 ├── QUICK_RUN.md
 ├── shared/
 │   ├── input/
 │   │   └── customers.json
-│   ├── validated/
-│   └── output/
-│       └── letters/
+│   ├── output/
+│   │   └── letters/
+│   └── validated/
 ├── validator_service/        ← Amy
 │   ├── app.py
 │   ├── Dockerfile
@@ -189,14 +219,14 @@ banking_letters_microservices/
 
 ## Requirements
 
-Before running the project, make sure you have:
+Before running the project locally, make sure you have:
 
-- **Docker Desktop** installed and running
-- **Docker Compose** available
-- the provided template files placed in the correct folders
+- Docker Desktop installed and running
+- Docker Compose available
+- the provided template files in the correct folders
 - the `customers.json` file in `shared/input/`
 
-If you want VS Code to stop showing missing import warnings for `flask`, `requests`, or `docx`, create a local Python virtual environment and install the packages locally as well:
+Optional for VS Code import warnings:
 
 ```powershell
 py -m venv .venv
@@ -206,7 +236,7 @@ pip install flask requests python-docx
 
 ---
 
-## How to Run the Project
+## How to Run the Project Locally
 
 ### 1. Open a terminal in the project root
 
@@ -219,9 +249,9 @@ docker compose up --build
 ```
 
 This starts:
-- `validator-service` on port `5000`
-- `welcome-service` on port `5001`
-- `offer-service` on port `5002`
+- `validator-service`
+- `welcome-service`
+- `offer-service`
 
 ### 3. Trigger the validator service
 
@@ -239,7 +269,7 @@ curl -X POST http://localhost:5000/process
 
 ### 4. Check the output files
 
-After the process finishes, check these locations:
+After the process finishes, check:
 
 - `shared/validated/validated_customers.json`
 - `shared/output/invalid_records.json`
@@ -254,7 +284,7 @@ Expected result using the sample JSON:
 
 ## Health Check Routes
 
-You can test whether each service is running with these URLs:
+You can test whether each local service is running using:
 
 - Validator Service:
   - `http://localhost:5000/health`
@@ -265,27 +295,55 @@ You can test whether each service is running with these URLs:
 
 ---
 
+## Bonus: Cloud Deployment on AWS Elastic Beanstalk
+
+For the bonus portion of the project, the same Dockerized microservices system was deployed to **AWS Elastic Beanstalk**.
+
+### Bonus Goal
+The course bonus states that marks may be earned by **using a database or deploying the project in the cloud**. For this project, the cloud-deployment option was chosen.
+
+### Cloud Deployment Summary
+- The project was deployed to **AWS Elastic Beanstalk**
+- The application remained containerized using Docker
+- The **validator service** was exposed as the public cloud entrypoint
+- The **welcome** and **offer** services remained internal services that were triggered by the validator service after successful validation
+
+### Cloud Endpoints Used
+Health check endpoint:
+
+```text
+GET /health
+```
+
+Process endpoint:
+
+```text
+POST /process
+```
+
+### What Was Verified in the Cloud
+- the Elastic Beanstalk environment became healthy/green
+- the deployed validator service responded successfully to `/health`
+- the deployed workflow responded successfully to `POST /process`
+
+This demonstrates that the project was successfully deployed to the cloud and satisfies the bonus requirement.
+
+---
+
 ## Demo Flow for Class
 
-A simple demo order would be:
+A simple demo order is:
 
-1. Explain that the project is split into 3 services
-2. Show the folder structure and team ownership
+1. Explain that the project is split into 3 microservices
+2. Show the project folder structure and team ownership
 3. Run `docker compose up --build`
-4. Show the `/health` routes working
+4. Show the `/health` routes working locally
 5. Trigger `POST /process`
 6. Open `validated_customers.json`
 7. Open `invalid_records.json`
 8. Open the generated `.docx` letters
-9. Explain that invalid records were safely blocked from processing
-
----
-
-## AWS Bonus Idea
-
-The easiest cloud bonus path is to deploy the same Dockerized project to **AWS Elastic Beanstalk** or to a more advanced stack like **Amazon ECS Fargate + ECR**.
-
-For this project, Elastic Beanstalk is the simplest bonus option because the application is already containerized and uses Docker Compose locally.
+9. Explain that invalid records were blocked from processing
+10. Show the AWS Elastic Beanstalk environment and cloud endpoints for the bonus
 
 ---
 
@@ -301,6 +359,8 @@ For this project, Elastic Beanstalk is the simplest bonus option because the app
 - [x] Offer letter generation
 - [x] README with architecture and run steps
 - [x] Quick run guide
+- [x] Team member responsibilities documented
+- [x] Cloud deployment bonus completed
 - [ ] Demo video
 - [ ] Final in-class demo
 
@@ -308,5 +368,7 @@ For this project, Elastic Beanstalk is the simplest bonus option because the app
 
 ## Final Notes
 
-This project was written to be clear, student-friendly, and easy for a professor to review.
-Each service is kept separate so that team ownership is easy to understand during marking and demonstration.
+This project was designed to be clear, student-friendly, and easy for a professor to review.
+Each microservice is separated clearly so that team ownership is visible during marking, demonstration, and code review.
+
+The core local version and the cloud bonus version both follow the same overall microservices workflow: validate first, block invalid records, and then generate letters only for approved customer records.
